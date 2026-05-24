@@ -6,6 +6,9 @@ import Combine
 struct ContactFormView: View {
 
     @Environment(\.dismiss) private var dismiss
+    
+    @State private var debounceTask: Task<Void, Never>?
+    
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -17,6 +20,7 @@ struct ContactFormView: View {
     @State private var logradouro = ""
     @State private var cidade = ""
     @State private var estado = ""
+    
     
     private let service = ViaCEPService()
 
@@ -36,7 +40,7 @@ struct ContactFormView: View {
                     TextField("CEP", text: $cep)
                         .keyboardType(.numberPad)
                         .onChange(of: cep) {
-                            fetchAddress()
+                            debounceFetchAddress()
                         }
 
                     if isLoading {
@@ -119,6 +123,19 @@ struct ContactFormView: View {
                 } else {
                     errorMessage = "CEP não encontrado"
                 }
+            }
+        }
+    }
+    
+    private func debounceFetchAddress() {
+
+        debounceTask?.cancel()
+
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s
+
+            if !Task.isCancelled {
+                fetchAddress()
             }
         }
     }
