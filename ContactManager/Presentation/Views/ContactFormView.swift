@@ -6,6 +6,8 @@ import Combine
 struct ContactFormView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @State private var isLoading = false
+    @State private var errorMessage: String?
 
     @State private var nome = ""
     @State private var email = ""
@@ -37,11 +39,21 @@ struct ContactFormView: View {
                             fetchAddress()
                         }
 
+                    if isLoading {
+                        ProgressView("Buscando endereço...")
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                    }
+
                     TextField("Logradouro", text: $logradouro)
                     TextField("Bairro", text: $bairro)
                     TextField("Cidade", text: $cidade)
                     TextField("Estado", text: $estado)
                 }
+
             }
             .navigationTitle("Novo Contato")
             .toolbar {
@@ -81,16 +93,32 @@ struct ContactFormView: View {
         onSave(contact)
         dismiss()
     }
-    
+
     private func fetchAddress() {
-        guard cep.count == 8 else { return }
+
+        guard cep.count == 8 else {
+            isLoading = false
+            errorMessage = nil
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
 
         Task {
-            if let response = await service.fetchAddress(cep: cep) {
-                logradouro = response.logradouro ?? ""
-                bairro = response.bairro ?? ""
-                cidade = response.localidade ?? ""
-                estado = response.uf ?? ""
+            let response = await service.fetchAddress(cep: cep)
+
+            await MainActor.run {
+                isLoading = false
+
+                if let response {
+                    logradouro = response.logradouro ?? ""
+                    bairro = response.bairro ?? ""
+                    cidade = response.localidade ?? ""
+                    estado = response.uf ?? ""
+                } else {
+                    errorMessage = "CEP não encontrado"
+                }
             }
         }
     }
