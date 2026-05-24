@@ -7,13 +7,36 @@
 
 import SwiftUI
 import CoreData
+import Combine
 
 struct ContentView: View {
-    var body: some View {
-        Text("Contact Manager")
-    }
-}
 
-#Preview {
-    ContentView()
+    @Environment(\.managedObjectContext) private var viewContext
+
+    @StateObject private var viewModel: ContactListViewModel
+
+    init() {
+        let context = PersistenceController.shared.container.viewContext
+        _viewModel = StateObject(
+            wrappedValue: ContactListViewModel(context: context)
+        )
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack {
+
+                List(viewModel.contacts) { contact in
+                    Text(contact.nome)
+                }
+
+                Button("Adicionar Contato") {
+                    viewModel.addContact()
+                }
+                .padding()
+
+            }
+            .navigationTitle("Contacts")
+        }
+    }
 }
