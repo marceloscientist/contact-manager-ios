@@ -4,33 +4,98 @@
 //
 //  Created by Santana, Marcelo de Carvalho on 23/05/26.
 //
-
 import XCTest
+import CoreData
 @testable import ContactManager
 
-final class ContactManagerTests: XCTestCase {
+final class ContactListViewModelTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    var viewModel: ContactListViewModel!
+    var context: NSManagedObjectContext!
+
+    override func setUp() {
+        super.setUp()
+
+        context = createInMemoryContext()
+        viewModel = ContactListViewModel(context: context)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    override func tearDown() {
+        viewModel = nil
+        context = nil
+        super.tearDown()
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    // ✅ Teste CREATE
+    func testAddContact_shouldIncreaseContactsCount() {
+
+        // Arrange
+        let contact = Contact(
+            id: UUID(),
+            nome: "Teste",
+            email: "teste@email.com",
+            telefone: "123",
+            nascimento: Date(),
+            cep: "",
+            bairro: "",
+            logradouro: "",
+            numero: "",
+            cidade: "",
+            estado: "",
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        // Act
+        viewModel.add(contact: contact)
+
+        // Assert
+        XCTAssertEqual(viewModel.contacts.count, 1)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    // ✅ Teste DELETE
+    func testDeleteContact_shouldRemoveContact() {
+
+        let contact = Contact(
+            id: UUID(),
+            nome: "Teste",
+            email: "teste@email.com",
+            telefone: "123",
+            nascimento: Date(),
+            cep: "",
+            bairro: "",
+            logradouro: "",
+            numero: "",
+            cidade: "",
+            estado: "",
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        viewModel.add(contact: contact)
+
+        // Act
+        viewModel.deleteContact(id: contact.id)
+
+        // Assert
+        XCTAssertEqual(viewModel.contacts.count, 0)
+    }
+    
+    
+    private func createInMemoryContext() -> NSManagedObjectContext {
+
+        let container = NSPersistentContainer(name: "ContactManager")
+
+        let description = NSPersistentStoreDescription()
+        description.type = NSInMemoryStoreType
+
+        container.persistentStoreDescriptions = [description]
+
+        container.loadPersistentStores { _, error in
+            XCTAssertNil(error)
         }
+
+        return container.viewContext
     }
 
 }
