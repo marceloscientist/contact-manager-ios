@@ -1,40 +1,57 @@
-import SwiftUI
-
 import CoreData
 import Combine
+import SwiftUI
+
 
 struct ContactFormView: View {
 
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var debounceTask: Task<Void, Never>?
-    
+
+    var contactToEdit: Contact?
+    var onSave: (Contact) -> Void
+
+    @State private var nome: String
+    @State private var email: String
+    @State private var telefone: String
+
+    @State private var cep: String
+    @State private var bairro: String
+    @State private var logradouro: String
+    @State private var cidade: String
+    @State private var estado: String
+
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    @State private var nome = ""
-    @State private var email = ""
-    @State private var telefone = ""
-    @State private var cep = ""
-    @State private var bairro = ""
-    @State private var logradouro = ""
-    @State private var cidade = ""
-    @State private var estado = ""
-    
-    
+    @State private var debounceTask: Task<Void, Never>?
+
     private let service = ViaCEPService()
 
-    var onSave: (Contact) -> Void
+    init(contactToEdit: Contact? = nil, onSave: @escaping (Contact) -> Void) {
+        self.contactToEdit = contactToEdit
+        self.onSave = onSave
+
+        _nome = State(initialValue: contactToEdit?.nome ?? "")
+        _email = State(initialValue: contactToEdit?.email ?? "")
+        _telefone = State(initialValue: contactToEdit?.telefone ?? "")
+
+        _cep = State(initialValue: contactToEdit?.cep ?? "")
+        _bairro = State(initialValue: contactToEdit?.bairro ?? "")
+        _logradouro = State(initialValue: contactToEdit?.logradouro ?? "")
+        _cidade = State(initialValue: contactToEdit?.cidade ?? "")
+        _estado = State(initialValue: contactToEdit?.estado ?? "")
+    }
 
     var body: some View {
         NavigationView {
             Form {
+
                 Section(header: Text("Dados Básicos")) {
                     TextField("Nome", text: $nome)
                     TextField("Email", text: $email)
                     TextField("Telefone", text: $telefone)
                 }
-                
+
                 Section(header: Text("Endereço")) {
 
                     TextField("CEP", text: $cep)
@@ -57,10 +74,10 @@ struct ContactFormView: View {
                     TextField("Cidade", text: $cidade)
                     TextField("Estado", text: $estado)
                 }
-
             }
-            .navigationTitle("Novo Contato")
+            .navigationTitle(contactToEdit == nil ? "Novo Contato" : "Editar Contato")
             .toolbar {
+
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancelar") {
                         dismiss()
@@ -79,7 +96,7 @@ struct ContactFormView: View {
 
     private func saveContact() {
         let contact = Contact(
-            id: UUID(),
+            id: contactToEdit?.id ?? UUID(),
             nome: nome,
             email: email,
             telefone: telefone,
@@ -90,12 +107,25 @@ struct ContactFormView: View {
             numero: "",
             cidade: cidade,
             estado: estado,
-            createdAt: Date(),
+            createdAt: contactToEdit?.createdAt ?? Date(),
             updatedAt: Date()
         )
 
         onSave(contact)
         dismiss()
+    }
+
+    private func debounceFetchAddress() {
+
+        debounceTask?.cancel()
+
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 800_000_000)
+
+            if !Task.isCancelled {
+                fetchAddress()
+            }
+        }
     }
 
     private func fetchAddress() {
@@ -123,19 +153,6 @@ struct ContactFormView: View {
                 } else {
                     errorMessage = "CEP não encontrado"
                 }
-            }
-        }
-    }
-    
-    private func debounceFetchAddress() {
-
-        debounceTask?.cancel()
-
-        debounceTask = Task {
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s
-
-            if !Task.isCancelled {
-                fetchAddress()
             }
         }
     }

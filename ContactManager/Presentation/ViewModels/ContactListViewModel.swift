@@ -18,7 +18,6 @@ final class ContactListViewModel: ObservableObject {
         contacts = repository.fetchAll()
     }
 
-
     func add(contact: Contact) {
         repository.create(contact: contact)
         fetchContacts()
@@ -26,6 +25,12 @@ final class ContactListViewModel: ObservableObject {
 
     func deleteContact(id: UUID) {
         repository.delete(id: id)
+        fetchContacts()
+    }
+
+    func update(contact: Contact) {
+        repository.delete(id: contact.id)
+        repository.create(contact: contact)
         fetchContacts()
     }
 }

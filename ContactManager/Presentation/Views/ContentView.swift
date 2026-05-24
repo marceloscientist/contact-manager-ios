@@ -8,14 +8,13 @@
 import SwiftUI
 import CoreData
 import Combine
-
-import SwiftUI
+import Foundation
 
 struct ContentView: View {
 
-    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel: ContactListViewModel
     @State private var showingForm = false
+    @State private var selectedContact: Contact?
 
     init() {
         let context = PersistenceController.shared.container.viewContext
@@ -26,23 +25,47 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            List(viewModel.contacts) { contact in
-                Text(contact.nome)
+            List {
+
+                ForEach(viewModel.contacts) { contact in
+                    Button {
+                        selectedContact = contact
+                    } label: {
+                        Text(contact.nome)
+                    }
+                }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let contact = viewModel.contacts[index]
+                        viewModel.deleteContact(id: contact.id)
+                    }
+                }
+
             }
             .navigationTitle("Contacts")
             .toolbar {
-                Button {
-                    showingForm = true
-                } label: {
-                    Image(systemName: "plus")
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingForm = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
+
+            // ✅ CREATE
             .sheet(isPresented: $showingForm) {
                 ContactFormView { contact in
                     viewModel.add(contact: contact)
                 }
             }
+
+            // ✅ EDIT
+            .sheet(item: $selectedContact) { contact in
+                ContactFormView(contactToEdit: contact) { updatedContact in
+                    viewModel.update(contact: updatedContact)
+                }
+            }
         }
     }
 }
-
